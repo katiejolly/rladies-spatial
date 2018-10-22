@@ -15,7 +15,7 @@ output:
 
 .center[
 
-![Comparison of GDS and GIS. In short, GDS is more flexible and reproducible.](images/gis-vs-gds.png)
+![Comparison of GDS and GIS. In short, GDS is more flexible and reproducible.](images/gis-vs-gds.PNG)
 
 Table taken from Robin Lovelace's post [Can Geographic Data Save the World?](https://www.robinlovelace.net/2017/05/02/can-geographic-data-save-the-world/).
 
@@ -55,7 +55,7 @@ Table taken from Robin Lovelace's post [Can Geographic Data Save the World?](htt
 
 .center[
 
-![Image of sf-supported vector data types](images/sf-data-types.png)
+![Image of sf-supported vector data types](images/sf-data-types.PNG)
 
 Image taken from [Geocomputation with R](https://geocompr.robinlovelace.net/spatial-class.html)
 ]
