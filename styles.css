@@ -35,10 +35,10 @@ h1, h2, h3 {
   font-family: 'Fira Code', 'Lucida Console', Monaco, monospace;
 }
 .remark-code {
-  font-size: 0.9em;
+  font-size: 12px;
 }
 .remark-inline-code {
-  font-size: 1em;
+  font-size: 12px;
   color: #562457;
 
 

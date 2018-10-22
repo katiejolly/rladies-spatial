@@ -141,12 +141,30 @@ mapview(honeybee_utm)
 
 ---
 
-# Basemap data, continued
+## Map by **HiveType**
 
-```{r message = FALSE, warning = FALSE}
-# install.packages("tigris")
-
-library(tigris)
+```{r fig.width=6, fig.height=4.5}
+library(mapview)
+mapview(honeybee, zcol = "HiveType", legend = TRUE)
 ```
 
+---
 
+## Specify the colors
+
+```{r fig.width=6, fig.height=4.5}
+library(mapview)
+mapview(honeybee, zcol = "HiveType", 
+        legend = TRUE, col.regions = c("#4e8e3e", "#34add6"))
+```
+
+---
+
+## Simplify the popup
+
+```{r fig.width=6, fig.height=4.5}
+library(mapview)
+mapview(honeybee, zcol = "HiveType", 
+        legend = TRUE, col.regions = c("#4e8e3e", "#34add6"),
+        popup = popupTable(honeybee %>% st_set_geometry(NULL), zcol = c("Address", "HiveType")))
+```
