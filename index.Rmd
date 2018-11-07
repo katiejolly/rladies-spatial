@@ -1,170 +1,280 @@
 ---
-title: "Spatial Data in R"
+title: "An Introduction to Geographic Data Science in R with Honeybees"
 author: "Katie Jolly"
-date: "07 November 2018"
-output:
-  xaringan::moon_reader:
-    lib_dir: libs
-    css: styles.css
-    nature:
-      highlightStyle: solarized-light
-      countIncrementalSlides: false
+date: "November 7, 2018"
+output: 
+  prettydoc::html_pretty:
+      theme: hpstr
+      highlight: github
 ---
 
-# GIS and GDS
+In this document I'll demonstrate some code that shows the surface of geographic data science in R. We'll use the packages `sf`, `dplyr`, and `ggplot2` pretty heavily, so make sure those are installed and ready to be loaded! 
 
-.center[
+```{r eval = FALSE}
 
-![Comparison of GDS and GIS. In short, GDS is more flexible and reproducible.](https://raw.githubusercontent.com/katiejolly/rladies-spatial-slides/master/images/gis-vs-gds.PNG)
+# run this code if you need to install any of the packages
 
+install.packages("sf")
+install.pakcages("dplyr")
+install.packages("ggplot2")
+
+# and better yet, if you're using dplyr and ggplot2, try running 
+
+install.packages("tidyverse") # to install the whole tidyverse. This takes a little while, though!
+
+```
+
+```{r message = FALSE, warning = FALSE}
+library(sf)
+library(tidyverse)
+```
+
+
+---
+
+# Geographic Data Science (GDS) and Geographic Information Science (GISc)
+
+While very similar, there are some key differences between GDS and GISc. We generally think about geographic operations in R and Python as geographic data science/geocomputation. On the other hand, we think about geogaphic operations in programs like QGIS and ArcMap as GISc (often just written GIS). One of the key distinctions for me is the degree of reproducibility. 
+
+![](https://raw.githubusercontent.com/katiejolly/rladies-spatial-slides/master/images/gis-vs-gds.PNG)
 Table taken from Robin Lovelace's post [Can Geographic Data Save the World?](https://www.robinlovelace.net/2017/05/02/can-geographic-data-save-the-world/).
 
-]
+With geographic operations in R, we can produce a full script of what we ran including any assumptions we made. This isn't the case with QGIS and ArcMap (I pick on these two only because they are the most popular). An added bonus as an R user is that the `sf` package for geographic data is specifically designed to work within the tidyverse framework. This means spatial data works with things like `dplyr` data verbs and now there's even a `geom_sf()` function in `ggplot2`!
 
----
+# R-Spatial Ecosystem 
 
-# R-Spatial Ecosystem
-
-.pull-left[
-
-**Data I/O, Wrangling, Analysis**
+There are a variety of packages available for spatial data analysis specifically. 
 
 - [sp](https://github.com/edzer/sp/): Classes and Methods for Spatial Data
 - [sf](https://github.com/r-spatial/sf): Simple Features for R (builds on sp)
 - [spdep](https://github.com/r-spatial/spdep): Spatial Dependence: Weighting Schemes, Statistics, and Models
 - [lwgeom](https://github.com/r-spatial/lwgeom): Binding to the liblwgeom library
 - ...
-]
 
-.pull-right[
+The newest, and in my opinion the most helpful to be comfortable with, is `sf`. 
 
-**Geographic Data Visualization**
+A good set of tutorials is available on the (a bit outdated) r-spatial [site](http://rspatial.org/). 
+
+Along with data analysis, there is also a great set of packages for data visualization! While `sf` dataframes work with `plot()`, these packages offer a lot more flexibility for users. 
 
 - [ggplot2](https://github.com/tidyverse/ggplot2): An implementation of the Grammar of Graphics in R (as of version 3, I believe)
 - [mapview](https://github.com/r-spatial/mapview): Interactive viewing of spatial data in R
-- [mapedit](https://github.com/r-spatial/mapedit): Interactive editing of spatial data in R (still in development)
 - [leaflet](https://rstudio.github.io/leaflet/): Create Interactive Web Maps with the JavaScript 'Leaflet' Library (great with shiny apps!)
 - [tmap](https://github.com/mtennekes/tmap): R package for thematic maps
 - ...
-]
 
-**People to Follow:** Jakub Nowosad, Robin Lovelace, Edzer Pebesma, Jannes Muenchow, Mark Padgham, Angela Li, Michael Sumner, Leah Wasser, Zev Ross, Kyle Walker, Roger Bivand, Jesse Sadler, and many, many more!
----
+If you're interested in keeping up with the latest r-spatial developments, consider following people like Jakub Nowosad, Robin Lovelace, Edzer Pebesma, Jannes Muenchow, Mark Padgham, Angela Li, Michael Sumner, Leah Wasser, Zev Ross, Kyle Walker, Roger Bivand, Jesse Sadler, and many, many more!
 
-# Spatial (vector) data in R
+# Structure of `sf` data
 
-.center[
-
-![Image of sf-supported vector data types](https://raw.githubusercontent.com/katiejolly/rladies-spatial-slides/master/images/sf-data-types.PNG)
+![](https://raw.githubusercontent.com/katiejolly/rladies-spatial-slides/master/images/sf-data-types.PNG)
 
 Image taken from [Geocomputation with R](https://geocompr.robinlovelace.net/spatial-class.html)
-]
 
----
+Simple Features is a hierarchical data model that represents a wide range of geometry types. Essentially, simple features dataframes have each spatial observation in one row (a census tract, a point, a state, ...) with a list-column of the coordinates to draw that shape. 
 
-class: center, middle
+The best way to learn about spatial data is to use it! We'll work through an example of how to map honeybee permits in Minneapolis. 
 
-# Making a map of honeybee permits
+## Projections
 
-**Objectives:** Importing shapefiles, leaflet for interactive maps, popups
+If projections are new to you, the [Geocomp in R chapter](https://geocompr.robinlovelace.net/reproj-geo-data.html#prerequisites-4) on projections is a great resource! In short, projections help us translate data from the 3D surface of the earth to a 2D surface on a map. Different projections make the geography look very different!
+
+![](https://i.stack.imgur.com/7zI6N.jpg)
+
+Projections are fundamental and really interesting, and they've even enjoyed a brief spotlight in the West Wing! 
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/vVX-PrBRtTY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 
----
+# Mapping the honeybees
 
-# Getting the data
+Go to [Open Minneapolis](http://opendata.minneapolismn.gov/datasets/honey-bee-permits-2017?geometry=-93.528%2C44.925%2C-93.27%2C45.01) to get the shapefile (most common spatial data filetype). You can directly download the shapefile by typing `https://opendata.arcgis.com/datasets/f99ce43936d74f718e92a37a560ad875_0.zip` into your browser or you can navigate through the data portal. 
 
-1. Go to [Open Minneapolis](http://opendata.minneapolismn.gov/datasets/honey-bee-permits-2017?geometry=-93.528%2C44.925%2C-93.27%2C45.01) to get the shapefile (most common spatial data filetype).
-
-2. Unzip it into a subfolder of the folder your RMarkdown is in called **shp**. 
+Then, unzip it into a subfolder of the folder your RMarkdown is in called **shp**. 
 
 ```
 r-ladies/
-  - practice.rmd
+  - practice.rmd (current rmarkdown/script)
   -shp/
     -shapefile (collection of a few files)
 ```
 
-3. Read it into R 
+You can then read it into R using `st_read()`
 
-```{r message = FALSE, warning = FALSE}
-#install.packages("sf")
-library(sf)
+```{r}
 honeybee <- st_read("shp/Honey_Bee_Permits_2017.shp")
 ```
 
----
+This output tells us the *dimensions* of the data, the *bounding box*, *geometry type*, and *projection*. These are all unique to spatial data. The epsg code refers to the projection used for this data. 
 
-#About sf Dataframes
-
-The biggest difference between sf data and regular tidy data is that sf objects have a list of the coordinates for each geometry in a column. 
-
-We will use only sf dataframes, but not every spatial package works with sf. If you ever need a Spatial* object, you can use `as(sf_data, Class = "Spatial")` to convert.
-
-There are a few special properties of sf data, though!
+There are a number of functions that can help us better understand the data we are working with. I'll run through a few important ones. 
 
 ```{r}
 str(honeybee$geometry) # what geometry type is your data
 
-# st_geometry(honeybee) gives the geometry type of each feature in a vector
+st_crs(honeybee) # what coordinate reference system is your data in? important!! This is WGS 84. we'll change that later.
 
-st_crs(honeybee) # coordinate reference system (projection). important!!
+sum(st_is_valid(honeybee) == TRUE) # how many of our units are valid? no self intersections, etc. in this case they're all valid! 
 ```
 
----
+We want our data to be projected in UTM 15N (Universal Transverse Mercator Zone 15 North), an appropriate projection for Minnesota. UTM zones are highly accurate within a specific zone, so they're generally a good projection for something "not too big."  
 
-# Projections, continued
-
-We want our data to be projected in UTM 15N (Universal Transverse Mercator Zone 15 North), an appropriate projection for Minnesota. If projections are new to you, read about them in [Geocomputation with R](https://geocompr.robinlovelace.net/spatial-class.html#crs-intro). They're essentially how we translate 3D data (a globe) onto a 2D surface (a map). 
+![](http://earth-info.nga.mil/GandG/coordsys/images/utm_mgrs_images/utm_fig1.jpg)
 
 ```{r}
 honeybee_utm <- st_transform(honeybee, 26915) 
 # use epsg codes to specify a projection
 ```
 
-.pull-left[
-![west wing image](images/west-wing.jpg)
-  ]
-  
-.pull-right[
-![west wing image](images/projections-west-wing.jpg)
-]
+If we want to see where the honeybee hives in Minneapolis are, the easiest thing to do is put it on a map! We'll use ggplot. 
 
----
+## Static Map
 
-## Putting it on a map
+First, we'll also want to have some sort of background map. We can using the [neighborhoods](http://opendata.minneapolismn.gov/datasets/neighborhoods) shapefile from Open Minneapolis.
 
-```{r fig.width=6, fig.height=4.5}
-library(mapview)
-mapview(honeybee_utm)
+```{r}
+neighborhoods <- st_read("https://opendata.arcgis.com/datasets/7f88316841ce471faa33c89035fb69e8_0.geojson") %>%
+  st_transform(26915)
+```
+
+The ggplot code looks a little different than the usual plot. We often don't need to add anything to aes() if we are just plotting to see the general data. Because of the way simple features are stored, there aren't logical x & y values. I'll also show an example with aes(), though.
+
+```{r}
+library(extrafont)
+ggplot() +
+  geom_sf(data = neighborhoods, fill = "#e8eff7", color = "#8f98aa") +
+  geom_sf(data = honeybee_utm, color = "#efcf2f") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank(),
+        text = element_text(family = "Century Gothic")) +
+  ggtitle("Honeybee Permits in Minneapolis")
+```
+
+So now we have a pretty good map! 
+
+We can also show where the different types of hives are in the city.
+
+```{r}
+ggplot() +
+  geom_sf(data = neighborhoods, fill = "#e8eff7", color = "#8f98aa") +
+  geom_sf(data = honeybee_utm, aes(color = HiveType)) +
+  scale_color_manual(values = c("#37a347", "#50a2e0")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank(),
+        text = element_text(family = "Century Gothic")) +
+  ggtitle("Honeybee Permits in Minneapolis")
 ```
 
 
----
+What if we want to know a little more about this distribution, though?
 
-## Map by **HiveType**
+One thing we might want to see is the number of honeybee permits *per neighborhood*.
 
-```{r fig.width=6, fig.height=4.5}
-library(mapview)
-mapview(honeybee, zcol = "HiveType", legend = TRUE)
+## Spatial joins
+
+In order to get data per neighborhood, we'll start with a spatial left join. It's similar to asking the question "which observations from y are in each observation from x"
+
+```{r}
+nb_join <- st_join(neighborhoods, honeybee_utm)
+
+head(nb_join)
 ```
 
----
+This gives us one observation for each overlap, which is why there are more rows than in our original data. We can use dplyr data verbs to calculate the value per neighborhood.
 
-## Specify the colors
-
-```{r fig.width=6, fig.height=4.5}
-library(mapview)
-mapview(honeybee, zcol = "HiveType", 
-        legend = TRUE, col.regions = c("#4e8e3e", "#34add6"))
+```{r}
+nb <- nb_join %>%
+  group_by(BDNAME) %>%
+  summarise(n_permits = n()) # total permits per neighborhood
 ```
 
----
+Let's quickly see this distribution
 
-## Simplify the popup
-
-```{r fig.width=6, fig.height=4.5}
-library(mapview)
-mapview(honeybee, zcol = "HiveType", 
-        legend = TRUE, col.regions = c("#4e8e3e", "#34add6"),
-        popup = popupTable(honeybee %>% st_set_geometry(NULL), zcol = c("Address", "HiveType")))
+```{r}
+ggplot(nb, aes(x = n_permits)) +
+  geom_histogram(binwidth = 1) +
+  theme_minimal() +
+  ggtitle("Permits per neighborhood") +
+  theme(text = element_text(family = "Century Gothic"))
 ```
+
+Most neighborhoods have only 1 permit. The maximum number of permits in a neighborhood is 4. 
+
+Let's map this data! We'll fill in the `aes()` this time.
+
+```{r}
+ggplot(nb) +
+  geom_sf(aes(fill = n_permits), color = "#8f98aa") +
+  scale_fill_gradient(low = "#f5f7d9", high = "#eadd27", guide = guide_legend(title = "Permits")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank(),
+        text = element_text(family = "Century Gothic")) +
+  ggtitle("Honeybee Permits per \nNeighborhood in Minneapolis")
+```
+
+## Clustering
+
+One thing you'll often come across in spatial data analysis is the idea of spatial autocorrelation. Positive spatial autocorrelation means that similar values tend to occur near each other and negative spatial autocorrelation means that dissimilar values tend to occur near each other. If you're modeling spatial data, this needs to be accounted for so that you don't get clustered errors. 
+
+![](data:image/jpeg;base64,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)
+
+
+Geographers have a few ways of caluclating this, but Moran's I is the most popular. 
+
+The easiest way to calculate this uses `spdep` instead of `sf`.
+
+```{r message = FALSE, warning = FALSE}
+library(spdep)
+
+neighborhoods_sp <- as(nb, "Spatial") # convert our data to sp data
+
+nb_obj <- poly2nb(neighborhoods_sp) # create the neighborhood object
+
+summary(nb_obj)
+```
+
+We can see here that the average number of neighbors for a neighborhood is 5.7 and the max number of neighbors is 9 (4 neighborhoods). 
+
+```{r}
+weights <- nb2listw(nb_obj, style = "B") # create a matrix of binary spatial weights (connected or not connected)
+```
+
+
+```{r}
+moran(neighborhoods_sp$n_permits, weights, n=length(weights$neighbours), S0=Szero(weights))
+```
+
+Our Moran's I statistic is 0.085. That means we see slight positive autocorrelation, but it's not extreme. We might also want some measure of statistical significance for this. 
+
+The preferred method for many people is to use Monte Carlo simulation. It randomly assigns values to the polygons and calculates Moran's I for each iteration. It then compares the observed statistic to the generated distribution. 
+
+```{r}
+set.seed(123)
+moran.mc(neighborhoods_sp$n_permits, weights, nsim=9999) # 10000 simulations
+```
+
+Our observed statistic is 0.085 with a p-value of 0.0637 so we would say our distribution is not different from randomly distributed.
+
+So, we now know that honeybee permits are randomly distributed in Minneapolis at the neighborhood level. It's important to note this spatial unit, clustering calculations can be very different at different units!
+
+
+
+
+# Resources for more information and practice
+
+- [R Ladies list of r-spatial resources](https://github.com/rspatialladies/rspatial-resources)
+
+- [Geocomputation with R](https://geocompr.robinlovelace.net/)
+
+
+
+
+
+
+
+
+
+
