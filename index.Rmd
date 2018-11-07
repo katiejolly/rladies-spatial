@@ -15,7 +15,7 @@ In this document I'll demonstrate some code that shows the surface of geographic
 # run this code if you need to install any of the packages
 
 install.packages("sf")
-install.pakcages("dplyr")
+install.packages("dplyr")
 install.packages("ggplot2")
 
 # and better yet, if you're using dplyr and ggplot2, try running 
@@ -194,10 +194,11 @@ Let's quickly see this distribution
 
 ```{r}
 ggplot(nb, aes(x = n_permits)) +
-  geom_histogram(binwidth = 1) +
+  geom_histogram(binwidth = 1, color = "white") +
   theme_minimal() +
   ggtitle("Permits per neighborhood") +
-  theme(text = element_text(family = "Century Gothic"))
+  theme(text = element_text(family = "Century Gothic")) +
+  labs(x = "Number of permits")
 ```
 
 Most neighborhoods have only 1 permit. The maximum number of permits in a neighborhood is 4. 
